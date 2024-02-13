@@ -631,6 +631,7 @@ class MapActivity :
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_report -> {
+                // TODO: nt.dung - Sending location report
                 viewModel.sendLocation()
                 true
             }
