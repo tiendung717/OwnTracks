@@ -8,6 +8,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
 import android.os.StrictMode
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDelegate
@@ -23,6 +24,7 @@ import androidx.work.InitializationExceptionHandler
 import androidx.work.WorkerFactory
 import dagger.hilt.EntryPoints
 import dagger.hilt.android.HiltAndroidApp
+import io.flic.flic2libandroid.Flic2Manager
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.conscrypt.Conscrypt
 import org.owntracks.android.data.waypoints.RoomWaypointsRepo
@@ -148,6 +150,9 @@ class App : Application(), Configuration.Provider, Preferences.OnPreferenceChang
 
         // Notifications can be sent from multiple places, so let's make sure we've got the channels in place
         createNotificationChannels()
+
+        // Setup Flic2
+        setupFlicButton()
     }
 
     private fun setThemeFromPreferences() {
@@ -296,6 +301,10 @@ class App : Application(), Configuration.Provider, Preferences.OnPreferenceChang
             Timber.v("Idling migrationIdlingResource")
             migrationIdlingResource.setIdleState(true)
         }
+    }
+
+    private fun setupFlicButton() {
+        Flic2Manager.initAndGetInstance(this, Handler())
     }
 
     companion object {

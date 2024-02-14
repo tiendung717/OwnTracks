@@ -289,6 +289,9 @@ dependencies {
     androidTestUtil(libs.bundles.androidx.test.util)
 
     coreLibraryDesugaring(libs.desugar)
+
+    implementation("com.github.50ButtonsEach:flic2lib-android:1.3.1")
+
 }
 
 // Publishing

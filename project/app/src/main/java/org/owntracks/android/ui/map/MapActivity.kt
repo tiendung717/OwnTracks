@@ -61,6 +61,7 @@ import org.owntracks.android.support.DrawerProvider
 import org.owntracks.android.support.RequirementsChecker
 import org.owntracks.android.support.SimpleIdlingResource
 import org.owntracks.android.ui.NotificationsStash
+import org.owntracks.android.ui.flic2.Flic2Button
 import org.owntracks.android.ui.mixins.LocationPermissionRequester
 import org.owntracks.android.ui.mixins.NotificationPermissionRequester
 import org.owntracks.android.ui.mixins.ServiceStarter
@@ -124,6 +125,9 @@ class MapActivity :
 
     @Inject
     lateinit var drawerProvider: DrawerProvider
+
+    @Inject
+    lateinit var flic2Button: Flic2Button
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -322,6 +326,8 @@ class MapActivity :
                 }
             }
         }
+
+        // setupFlic2Button()
     }
 
     private fun navigateToCurrentContact() {
@@ -597,7 +603,11 @@ class MapActivity :
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val inflater = menuInflater
-        inflater.inflate(R.menu.activity_map, menu)
+        if (Flic2Button.FEATURE_ENABLED) {
+            inflater.inflate(R.menu.activity_map_flic2button, menu)
+        } else {
+            inflater.inflate(R.menu.activity_map, menu)
+        }
         this.menu = menu
         updateMonitoringModeMenu()
         viewModel.updateMyLocationStatus()
@@ -631,7 +641,6 @@ class MapActivity :
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_report -> {
-                // TODO: nt.dung - Sending location report
                 viewModel.sendLocation()
                 true
             }
@@ -652,15 +661,19 @@ class MapActivity :
 
     private fun disableLocationMenus() {
         binding.fabMyLocation.isEnabled = false
-        menu?.run {
-            findItem(R.id.menu_report).setEnabled(false).icon?.alpha = 128
+        if (!Flic2Button.FEATURE_ENABLED) {
+            menu?.run {
+                findItem(R.id.menu_report).setEnabled(false).icon?.alpha = 128
+            }
         }
     }
 
     private fun enableLocationMenus() {
         binding.fabMyLocation.isEnabled = true
-        menu?.run {
-            findItem(R.id.menu_report).setEnabled(true).icon?.alpha = 255
+        if (!Flic2Button.FEATURE_ENABLED) {
+            menu?.run {
+                findItem(R.id.menu_report).setEnabled(true).icon?.alpha = 255
+            }
         }
     }
 
@@ -711,6 +724,17 @@ class MapActivity :
     override fun onStop() {
         super.onStop()
         unbindService(serviceConnection)
+    }
+
+    private fun setupFlic2Button() {
+        if (Flic2Button.FEATURE_ENABLED) {
+            flic2Button.startScan(
+                context = this,
+                onButtonSingleOrDoubleClickOrHold = {
+                    viewModel.sendLocation()
+                }
+            )
+        }
     }
 
     companion object {

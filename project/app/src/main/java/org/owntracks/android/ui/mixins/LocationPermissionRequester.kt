@@ -1,8 +1,10 @@
 package org.owntracks.android.ui.mixins
 
+import android.Manifest
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.content.Context
+import android.os.Build
 import androidx.activity.result.ActivityResultCaller
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityOptionsCompat
@@ -44,7 +46,19 @@ class LocationPermissionRequester(
     ) {
         Timber.d("Requesting Location Permissions with code=$code ")
         this.code = code
-        val permissions = arrayOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION)
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(
+                ACCESS_FINE_LOCATION,
+                ACCESS_COARSE_LOCATION,
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT
+            )
+        } else {
+            arrayOf(
+                ACCESS_FINE_LOCATION,
+                ACCESS_COARSE_LOCATION
+            )
+        }
         if (showPermissionRationale(ACCESS_FINE_LOCATION)) {
             // The user may have denied us once already, so show a rationale
             Timber.d("Showing Location permission rationale")

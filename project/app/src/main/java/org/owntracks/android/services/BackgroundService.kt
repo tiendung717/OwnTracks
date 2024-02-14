@@ -64,6 +64,7 @@ import org.owntracks.android.services.worker.Scheduler
 import org.owntracks.android.support.DateFormatter.formatDate
 import org.owntracks.android.support.RunThingsOnOtherThreads
 import org.owntracks.android.support.SimpleIdlingResource
+import org.owntracks.android.ui.flic2.Flic2Button
 import org.owntracks.android.ui.map.MapActivity
 import timber.log.Timber
 import java.time.Duration
@@ -127,6 +128,9 @@ class BackgroundService :
     @Inject
     @CoroutineScopes.IoDispatcher
     lateinit var ioDispatcher: CoroutineDispatcher
+
+    @Inject
+    lateinit var flic2Button: Flic2Button
 
     private val callbackForReportType =
         mutableMapOf<MessageLocation.ReportType, Lazy<LocationCallbackWithReportType>>().apply {
@@ -258,6 +262,8 @@ class BackgroundService :
             }
             setupGeofences()
         }
+
+        setupFlic2Button()
     }
 
     override fun onDestroy() {
@@ -729,6 +735,17 @@ class BackgroundService :
             },
             0
         )
+    }
+
+    private fun setupFlic2Button() {
+        if (Flic2Button.FEATURE_ENABLED) {
+            flic2Button.startScan(
+                context = this,
+                onButtonSingleOrDoubleClickOrHold = {
+                    publishPendingIntent.send()
+                }
+            )
+        }
     }
 
     private val localServiceBinder: IBinder = LocalBinder()
