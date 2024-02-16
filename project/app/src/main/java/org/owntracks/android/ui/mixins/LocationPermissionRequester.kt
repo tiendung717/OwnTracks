@@ -3,6 +3,8 @@ package org.owntracks.android.ui.mixins
 import android.Manifest
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.Manifest.permission.BLUETOOTH_CONNECT
+import android.Manifest.permission.BLUETOOTH_SCAN
 import android.content.Context
 import android.os.Build
 import androidx.activity.result.ActivityResultCaller
@@ -21,13 +23,26 @@ class LocationPermissionRequester(
     private val permissionRequest =
         caller.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
             Timber.d("Notification permission callback, result=$permissions ")
-            when {
-                permissions[ACCESS_COARSE_LOCATION] ?: false ||
-                    permissions[ACCESS_FINE_LOCATION] ?: false -> {
-                    permissionGrantedCallback(this.code)
+            val hasLocationPermission = permissions[ACCESS_COARSE_LOCATION] ?: false || permissions[ACCESS_FINE_LOCATION] ?: false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val hasBluetoothPermission = permissions[BLUETOOTH_CONNECT] ?: false && permissions[BLUETOOTH_SCAN] ?: false
+
+                when {
+                    hasLocationPermission && hasBluetoothPermission -> {
+                        permissionGrantedCallback(this.code)
+                    }
+                    else -> {
+                        permissionDeniedCallback(this.code)
+                    }
                 }
-                else -> {
-                    permissionDeniedCallback(this.code)
+            } else {
+                when {
+                    hasLocationPermission -> {
+                        permissionGrantedCallback(this.code)
+                    }
+                    else -> {
+                        permissionDeniedCallback(this.code)
+                    }
                 }
             }
         }
@@ -50,8 +65,8 @@ class LocationPermissionRequester(
             arrayOf(
                 ACCESS_FINE_LOCATION,
                 ACCESS_COARSE_LOCATION,
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT
+                BLUETOOTH_SCAN,
+                BLUETOOTH_CONNECT
             )
         } else {
             arrayOf(

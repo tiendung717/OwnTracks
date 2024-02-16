@@ -5,4 +5,16 @@
     <item
         android:id="@+id/menu_monitoring"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/menu_button_connect"
+        android:icon="@drawable/ic_button_connected"
+        android:title="Connect"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/menu_button_disconnect"
+        android:icon="@drawable/ic_button_disconnect"
+        android:title="Disconnect"
+        app:showAsAction="ifRoom" />
 </menu>
