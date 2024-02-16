@@ -3,6 +3,7 @@ package org.owntracks.android.services
 import android.Manifest
 import android.app.Notification
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Typeface
@@ -15,6 +16,7 @@ import android.os.Process
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.StyleSpan
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -64,6 +66,7 @@ import org.owntracks.android.services.worker.Scheduler
 import org.owntracks.android.support.DateFormatter.formatDate
 import org.owntracks.android.support.RunThingsOnOtherThreads
 import org.owntracks.android.support.SimpleIdlingResource
+import org.owntracks.android.ui.flic2.FlicButtonRepo
 import org.owntracks.android.ui.map.MapActivity
 import timber.log.Timber
 import java.time.Duration
@@ -127,6 +130,9 @@ class BackgroundService :
     @Inject
     @CoroutineScopes.IoDispatcher
     lateinit var ioDispatcher: CoroutineDispatcher
+
+    @Inject
+    lateinit var flicButtonRepo: FlicButtonRepo
 
     private val callbackForReportType =
         mutableMapOf<MessageLocation.ReportType, Lazy<LocationCallbackWithReportType>>().apply {
@@ -283,6 +289,10 @@ class BackgroundService :
         if (intent.action != null) {
             Timber.v("intent received with action:${intent.action}")
             when (intent.action) {
+                INTENT_ACTION_SCAN_FLIC_BUTTON -> {
+                    setupFlic2Button()
+                    return
+                }
                 INTENT_ACTION_SEND_LOCATION_USER -> {
                     lifecycleScope.launch {
                         locationProviderClient.singleHighAccuracyLocation(
@@ -731,6 +741,18 @@ class BackgroundService :
         )
     }
 
+    fun setupFlic2Button() {
+        if (FlicButtonRepo.FEATURE_ENABLED) {
+            Timber.tag("nt.dung").d("Start scan flic buttons")
+            Toast.makeText(this, "Scanning buttons", Toast.LENGTH_SHORT).show()
+            flicButtonRepo.connect(
+                onSendLocation = {
+                    publishPendingIntent.send()
+                }
+            )
+        }
+    }
+
     private val localServiceBinder: IBinder = LocalBinder()
 
     inner class LocalBinder : Binder() {
@@ -752,6 +774,7 @@ class BackgroundService :
         private const val NOTIFICATION_GROUP_EVENTS = "events"
 
         // NEW ACTIONS ALSO HAVE TO BE ADDED TO THE SERVICE INTENT FILTER
+        private const val INTENT_ACTION_SCAN_FLIC_BUTTON = "org.owntracks.android.SCAN_FLIC_BUTTON"
         private const val INTENT_ACTION_SEND_LOCATION_USER = "org.owntracks.android.SEND_LOCATION_USER"
         const val INTENT_ACTION_SEND_EVENT_CIRCULAR = "org.owntracks.android.SEND_EVENT_CIRCULAR"
         private const val INTENT_ACTION_CLEAR_NOTIFICATIONS =
@@ -763,6 +786,13 @@ class BackgroundService :
         private const val INTENT_ACTION_PACKAGE_REPLACED = "android.intent.action.MY_PACKAGE_REPLACED"
         private const val updateCurrentIntentFlags =
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+
+
+        fun requestScanFlic2Button(context: Context) {
+            val intent = Intent(context, BackgroundService::class.java)
+            intent.action = INTENT_ACTION_SCAN_FLIC_BUTTON
+            context.startService(intent)
+        }
     }
 
     class LocationCallbackWithReportType(

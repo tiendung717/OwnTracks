@@ -6,6 +6,8 @@ buildscript {
         maven {
             url = uri("https://storage.googleapis.com/r8-releases/raw")
         }
+        maven { url = uri("https://jitpack.io") }
+
     }
     dependencies {
         classpath(libs.bundles.buildscript)

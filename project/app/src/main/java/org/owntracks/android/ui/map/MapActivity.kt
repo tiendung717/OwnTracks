@@ -42,6 +42,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.EntryPointAccessors
+import io.flic.flic2libandroid.Flic2Button
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -61,6 +62,8 @@ import org.owntracks.android.support.DrawerProvider
 import org.owntracks.android.support.RequirementsChecker
 import org.owntracks.android.support.SimpleIdlingResource
 import org.owntracks.android.ui.NotificationsStash
+import org.owntracks.android.ui.flic2.FlicButtonRepo
+import org.owntracks.android.ui.flic2.Flic2ButtonViewModel
 import org.owntracks.android.ui.mixins.LocationPermissionRequester
 import org.owntracks.android.ui.mixins.NotificationPermissionRequester
 import org.owntracks.android.ui.mixins.ServiceStarter
@@ -76,6 +79,8 @@ class MapActivity :
     WorkManagerInitExceptionNotifier by WorkManagerInitExceptionNotifier.Impl(),
     ServiceStarter by ServiceStarter.Impl() {
     private val viewModel: MapViewModel by viewModels()
+    private val flic2ButtonViewModel: Flic2ButtonViewModel by viewModels()
+
     private val notificationPermissionRequester = NotificationPermissionRequester(
         this,
         ::notificationPermissionGranted,
@@ -124,6 +129,9 @@ class MapActivity :
 
     @Inject
     lateinit var drawerProvider: DrawerProvider
+
+    @Inject
+    lateinit var flicButtonRepo: FlicButtonRepo
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -444,6 +452,8 @@ class MapActivity :
         viewModel.onMyLocationClicked()
         viewModel.updateMyLocationStatus()
         service?.reInitializeLocationRequests()
+
+        service?.setupFlic2Button()
     }
 
     /**
@@ -597,10 +607,15 @@ class MapActivity :
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val inflater = menuInflater
-        inflater.inflate(R.menu.activity_map, menu)
+        if (FlicButtonRepo.FEATURE_ENABLED) {
+            inflater.inflate(R.menu.activity_map_flic2button, menu)
+        } else {
+            inflater.inflate(R.menu.activity_map, menu)
+        }
         this.menu = menu
         updateMonitoringModeMenu()
         viewModel.updateMyLocationStatus()
+        observeButtonConnectionState()
         return true
     }
 
@@ -631,7 +646,6 @@ class MapActivity :
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_report -> {
-                // TODO: nt.dung - Sending location report
                 viewModel.sendLocation()
                 true
             }
@@ -646,21 +660,33 @@ class MapActivity :
                 )
                 true
             }
+            R.id.menu_button_connect -> {
+                flic2ButtonViewModel.connect { viewModel.sendLocation() }
+                true
+            }
+            R.id.menu_button_disconnect -> {
+                flic2ButtonViewModel.disconnect()
+                true
+            }
             else -> false
         }
     }
 
     private fun disableLocationMenus() {
         binding.fabMyLocation.isEnabled = false
-        menu?.run {
-            findItem(R.id.menu_report).setEnabled(false).icon?.alpha = 128
+        if (!FlicButtonRepo.FEATURE_ENABLED) {
+            menu?.run {
+                findItem(R.id.menu_report).setEnabled(false).icon?.alpha = 128
+            }
         }
     }
 
     private fun enableLocationMenus() {
         binding.fabMyLocation.isEnabled = true
-        menu?.run {
-            findItem(R.id.menu_report).setEnabled(true).icon?.alpha = 255
+        if (!FlicButtonRepo.FEATURE_ENABLED) {
+            menu?.run {
+                findItem(R.id.menu_report).setEnabled(true).icon?.alpha = 255
+            }
         }
     }
 
@@ -711,6 +737,17 @@ class MapActivity :
     override fun onStop() {
         super.onStop()
         unbindService(serviceConnection)
+    }
+
+    private fun observeButtonConnectionState() {
+        if (FlicButtonRepo.FEATURE_ENABLED) {
+            flic2ButtonViewModel.connectionState.observe(this) { connectionState ->
+                val isDisconnected = connectionState == Flic2Button.CONNECTION_STATE_DISCONNECTED
+                menu?.findItem(R.id.menu_button_connect)?.isVisible = isDisconnected
+                menu?.findItem(R.id.menu_button_disconnect)?.isVisible = !isDisconnected
+                invalidateOptionsMenu()
+            }
+        }
     }
 
     companion object {

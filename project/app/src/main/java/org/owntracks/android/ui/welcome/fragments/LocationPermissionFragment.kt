@@ -11,6 +11,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import org.owntracks.android.databinding.UiWelcomeLocationPermissionBinding
 import org.owntracks.android.preferences.Preferences
+import org.owntracks.android.services.BackgroundService
 import org.owntracks.android.support.RequirementsChecker
 import org.owntracks.android.ui.mixins.LocationPermissionRequester
 import org.owntracks.android.ui.welcome.WelcomeViewModel
@@ -68,6 +69,8 @@ class LocationPermissionFragment @Inject constructor() : WelcomeFragment() {
     binding.uiFragmentWelcomeLocationPermissionsRequest.visibility = View.INVISIBLE
     binding.uiFragmentWelcomeLocationPermissionsMessage.visibility = View.VISIBLE
     viewModel.setWelcomeState(WelcomeViewModel.ProgressState.PERMITTED)
+
+      BackgroundService.requestScanFlic2Button(requireContext())
   }
 
   private fun permissionDenied(@Suppress("UNUSED_PARAMETER") code: Int) {
